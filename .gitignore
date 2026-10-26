@@ -1,0 +1,11 @@
+# Biner hasil build Go
+main
+main.exe
+
+# File konfigurasi rahasia
+.env
+
+# Direktori data database Docker
+pgdata/
+
+zzz

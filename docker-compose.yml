@@ -1,0 +1,34 @@
+version: '3.8'
+
+services:
+  # Layanan database PostgreSQL
+  postgres:
+    image: postgres:15-alpine
+    container_name: postgres_db
+    restart: always
+    environment:
+      POSTGRES_USER: root
+      POSTGRES_PASSWORD: secretpassword
+      POSTGRES_DB: golang_crud_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  # Layanan aplikasi backend Golang
+  app:
+    build: .
+    container_name: golang_app
+    ports:
+      - "9000:8080"
+    depends_on:
+      - postgres
+    environment:
+      - DB_HOST=localhost
+      - DB_USER=root
+      - DB_PASSWORD=secretpassword
+      - DB_NAME=golang_crud_db
+      - DB_PORT=5432
+
+volumes:
+  pgdata:
