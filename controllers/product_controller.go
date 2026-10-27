@@ -3,6 +3,7 @@ package controllers
 import (
 	"crud-mini-project/config"
 	"crud-mini-project/models"
+	"crud-mini-project/utils"
 	"encoding/json"
 	"net/http"
 	"strconv"
@@ -18,9 +19,51 @@ func CreateProduct(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var product models.Product
-	err := json.NewDecoder(r.Body).Decode(&product)
-	if err != nil {
-		http.Error(w, "Format data JSON tidak valid", http.StatusBadRequest)
+
+	//err := json.NewDecoder(r.Body).Decode(&product)
+	//if err != nil {
+	//	http.Error(w, "Format data JSON tidak valid", http.StatusBadRequest)
+	//	return
+	//}
+
+	if err := json.NewDecoder(r.Body).Decode(&product); err != nil {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"status":  "error",
+			"message": "Status json tidak valid.",
+		})
+		return
+	}
+
+	//TASK 9: Penambahan validasi
+	if utils.IsEmpty(product.Name) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"status":  "error",
+			"message": "Validasi gagal: Nama produk tidak boleh kosong.",
+		})
+		return
+	}
+
+	if product.Price <= 0 {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"status":  "error",
+			"message": "Validasi gagal: Harga produk harus lebih dari 0.",
+		})
+		return
+	}
+
+	if product.Stock < 0 {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"status":  "error",
+			"message": "Validasi gagal: Stok produk tidak boleh bernilai negatif.",
+		})
 		return
 	}
 
@@ -160,6 +203,13 @@ func GetProductByID(w http.ResponseWriter, r *http.Request) {
 // Materi Task 8: Mengambil daftar produk dengan fitur Pagination dan Search
 func GetProducts(w http.ResponseWriter, r *http.Request) {
 	var products []models.Product
+	//query := config.DB.Model(&models.Product{})
+
+	//Fitur search by name
+	//search := r.URL.Query().Get("search")
+	//if search != "" {
+	//	query = query.Where("name ILIKE ?", "%"+search+"%")
+	//}
 
 	// 1. Parameter Pagination (Default: page 1, limit 10)
 	pageStr := r.URL.Query().Get("page")
@@ -186,6 +236,22 @@ func GetProducts(w http.ResponseWriter, r *http.Request) {
 	if search != "" {
 		// Menggunakan ILike atau LIKE untuk pencarian case-insensitive pada nama produk
 		query = query.Where("name LIKE ?", "%"+search+"%")
+	}
+
+	//Filter
+	category := r.URL.Query().Get("category")
+	if category != "" {
+		query = query.Where("category ILIKE ?", "%"+category+"%")
+	}
+
+	minPrice := r.URL.Query().Get("min_price")
+	if minPrice != "" {
+		query = query.Where("price >= ?", minPrice)
+	}
+
+	maxPrice := r.URL.Query().Get("max_price")
+	if maxPrice != "" {
+		query = query.Where("price <= ?", maxPrice)
 	}
 
 	// Terapkan limit, offset untuk pagination, lalu ambil data

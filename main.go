@@ -40,7 +40,7 @@ func main() {
 	http.HandleFunc("/auth/google/callback", controllers.GoogleCallback)
 
 	// --- RUTE PRIVAT / TERPROTEKSI (CRUD Produk dengan JWT Middleware) ---
-	http.HandleFunc("/products", middleware.AuthMiddleware(controllers.CreateProduct))
+	http.HandleFunc("/products/create", middleware.AuthMiddleware(controllers.CreateProduct))
 	http.HandleFunc("/products/update", middleware.AuthMiddleware(controllers.UpdateProduct))
 	http.HandleFunc("/products/delete", middleware.AuthMiddleware(controllers.DeleteProduct))
 	http.HandleFunc("/products", middleware.AuthMiddleware(controllers.GetProducts))
