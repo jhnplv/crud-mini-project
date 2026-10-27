@@ -12,8 +12,12 @@ import (
 )
 
 func main() {
+	// [Analogi: Memuat file konfigurasi rahasia sebelum sistem mulai beroperasi]
+	// Memuat variabel lingkungan dari file .env
 	godotenv.Load()
 
+	// [Analogi: Menghubungkan pusat data ke gudang penyimpanan utama PostgreSQL]
+	// Menghubungkan ke database dan menjalankan auto-migration
 	config.ConnectDB()
 
 	// [Analogi: Menaruh papan tombol bel di meja informasi restoran bertuliskan "Cek Kesehatan Dapur"]
@@ -29,14 +33,18 @@ func main() {
 		w.Write([]byte(`{"status": "sukses", "message": "Server backend Go siap melayani!"}`))
 	})
 
+	// --- RUTE PUBLIK (Autentikasi & OAuth2 Google) ---
 	http.HandleFunc("/register", controllers.Register)
 	http.HandleFunc("/login", controllers.Login)
 	http.HandleFunc("/auth/google/login", controllers.GoogleLogin)
 	http.HandleFunc("/auth/google/callback", controllers.GoogleCallback)
 
+	// --- RUTE PRIVAT / TERPROTEKSI (CRUD Produk dengan JWT Middleware) ---
 	http.HandleFunc("/products", middleware.AuthMiddleware(controllers.CreateProduct))
 	http.HandleFunc("/products/update", middleware.AuthMiddleware(controllers.UpdateProduct))
 	http.HandleFunc("/products/delete", middleware.AuthMiddleware(controllers.DeleteProduct))
+	http.HandleFunc("/products", middleware.AuthMiddleware(controllers.GetProducts))
+	http.HandleFunc("/products/detail", middleware.AuthMiddleware(controllers.GetProductByID))
 
 	port := ":9000"
 	fmt.Printf("Server menyala dan mendengarkan pada port %s\n", port)

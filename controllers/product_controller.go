@@ -126,3 +126,80 @@ func DeleteProduct(w http.ResponseWriter, r *http.Request) {
 		"message": "Produk berhasil dihapus!",
 	})
 }
+
+// [Analogi: Rak arsip khusus untuk mengambil satu berkas spesifik berdasarkan nomor ID dokumen]
+// Materi Task 8: Mengambil detail produk berdasarkan ID
+func GetProductByID(w http.ResponseWriter, r *http.Request) {
+	// Mengambil parameter id dari query string (contoh: /products/detail?id=1)
+	idStr := r.URL.Query().Get("id")
+	if idStr == "" {
+		http.Error(w, "Parameter ID produk diperlukan", http.StatusBadRequest)
+		return
+	}
+
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		http.Error(w, "Format tidak valid.", http.StatusBadRequest)
+		return
+	}
+
+	var product models.Product
+	if err := config.DB.First(&product, id).Error; err != nil {
+		http.Error(w, "Produk tidak ditemukan.", http.StatusNotFound)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"status": "sukses",
+		"data":   product,
+	})
+}
+
+// [Analogi: Buku katalog toko yang dilengkapi halaman (pagination) dan indeks pencarian nama (search)]
+// Materi Task 8: Mengambil daftar produk dengan fitur Pagination dan Search
+func GetProducts(w http.ResponseWriter, r *http.Request) {
+	var products []models.Product
+
+	// 1. Parameter Pagination (Default: page 1, limit 10)
+	pageStr := r.URL.Query().Get("page")
+	limitStr := r.URL.Query().Get("limit")
+
+	page := 1
+	if p, err := strconv.Atoi(pageStr); err == nil && p > 0 {
+		page = p
+	}
+
+	limit := 10
+	if l, err := strconv.Atoi(limitStr); err == nil && l > 0 {
+		limit = l
+	}
+
+	offset := (page - 1) * limit
+
+	// 2. Parameter Search (Pencarian berdasarkan nama produk)
+	search := r.URL.Query().Get("search")
+
+	// Query dasar GORM
+	query := config.DB.Model(&models.Product{})
+
+	if search != "" {
+		// Menggunakan ILike atau LIKE untuk pencarian case-insensitive pada nama produk
+		query = query.Where("name LIKE ?", "%"+search+"%")
+	}
+
+	// Terapkan limit, offset untuk pagination, lalu ambil data
+	if err := query.Limit(limit).Offset(offset).Find(&products).Error; err != nil {
+		http.Error(w, "Gagal mengambil data produk.", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"status": "sukses",
+		"page":   page,
+		"limit":  limit,
+		"data":   products,
+	})
+
+}
